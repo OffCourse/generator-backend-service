@@ -4,7 +4,13 @@
   "description": "TODO",
   "main": "index.js",
   "scripts": {
-    "local": "./node_modules/node-lambda/bin/node-lambda run"
+    "local": "./node_modules/node-lambda/bin/node-lambda run",
+    "watch": "boot dev",
+    "build": "boot build && aws cloudformation package --template-file build.yml --output-template-file <%= outputTemplate %> --s3-bucket offcourse-bootstrap",
+    "deploy": "aws cloudformation deploy --template-file <%= outputTemplate %> --stack-name <%= service %> --capabilities CAPABILITY_IAM",
+    "remote": "aws lambda invoke --function-name $(aws cloudformation describe-stack-resources --stack-name echo | jq '.StackResources | map(select(.ResourceType == \"AWS::Lambda::Function\"))[0].PhysicalResourceId' | sed -e 's/\"//g') --payload file://event.json logs.json",
+    "remove": "aws cloudformation delete-stack --stack-name <%= service %>"
+
   },
   "author": "<%= author %>",
   "license": "MIT",

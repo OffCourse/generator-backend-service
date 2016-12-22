@@ -1,9 +1,11 @@
 var Generator = require('yeoman-generator');
+var _ = require('lodash');
 
 module.exports = class extends Generator {
+
   constructor(args, opts) {
     super(args, opts);
-    this.argument('serviceName',  { type: String, required: true });
+    this.argument('serviceName',  { type: String, default: "echo"});
     this.argument('organization', { type: String, default: "offcourse"});
     this.argument('author',       { type: String, default: "Yeehaa"});
     this.destinationRoot(`${this.options.serviceName}`);
@@ -47,15 +49,9 @@ module.exports = class extends Generator {
     );
 
     this.fs.copyTpl(
-      this.templatePath('_boot.properties'),
-      this.destinationPath('boot.properties'),
-      this.defaultOptions
-    );
-
-    this.fs.copyTpl(
-      this.templatePath('_build.boot'),
-      this.destinationPath('build.boot'),
-      this.defaultOptions
+      this.templatePath('_package.json'),
+      this.destinationPath('package.json'),
+      _.merge(this.defaultOptions, {outputTemplate: `${this.serviceName}.yml`})
     );
 
     this.fs.copyTpl(
@@ -71,8 +67,20 @@ module.exports = class extends Generator {
     );
 
     this.fs.copyTpl(
-      this.templatePath('_package.json'),
-      this.destinationPath('package.json'),
+      this.templatePath('_build.yml'),
+      this.destinationPath('build.yml'),
+      _.merge(this.defaultOptions, {functionName: `${_.upperFirst(this.serviceName)}Function`})
+    );
+
+    this.fs.copyTpl(
+      this.templatePath('_boot.properties'),
+      this.destinationPath('boot.properties'),
+      this.defaultOptions
+    );
+
+    this.fs.copyTpl(
+      this.templatePath('_build.boot'),
+      this.destinationPath('build.boot'),
       this.defaultOptions
     );
 

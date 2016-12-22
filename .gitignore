@@ -7,3 +7,4 @@
 *.zip
 .env
 envvars.yml
+logs.json
