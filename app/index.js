@@ -24,66 +24,48 @@ module.exports = class extends Generator {
     },{
       type    : 'input',
       name    : 'author',
-      message : 'Your name',
+      message : 'your name',
       default : this.options.author
+    },{
+      type    : 'input',
+      name    : 'bucket',
+      message : 'The s3 bucket in which you want to store your artifacts',
+      default : 'offcourse-bootstrap'
     }]).then((answers) => {
       this.serviceName = answers.serviceName;
       this.organization = answers.organization;
       this.author = answers.author;
+      this.bucketName = answers.bucket;
       this.log('service name', this.serviceName);
       this.log('organization', this.organization);
     });
   }
 
-  writing() {
-    this.defaultOptions = {
-      service: `${this.serviceName}`,
-      organization: `${this.organization}`,
-      author: `${this.author}`
-    };
-
+  _copyTemplate(fileName, overrides){
     this.fs.copyTpl(
-      this.templatePath('_index.js'),
-      this.destinationPath('index.js'),
-      this.defaultOptions
+      this.templatePath(`_${fileName}`),
+      this.destinationPath(fileName),
+      overrides ? _.merge(this.defaultOptions, overrides) : this.defaultOptions
     );
+  }
 
-    this.fs.copyTpl(
-      this.templatePath('_package.json'),
-      this.destinationPath('package.json'),
-      _.merge(this.defaultOptions, {outputTemplate: `${this.serviceName}.yml`})
-    );
+  _copyTemplates(fileNames, overrides){
+    _.each(fileNames, (fileName) => this._copyTemplate(fileName, overrides));
+  }
 
-    this.fs.copyTpl(
-      this.templatePath('_context.json'),
-      this.destinationPath('context.json'),
-      this.defaultOptions
-    );
+  _automation(){
+    let overrides = {outputTemplate: `${this.serviceName}.yml`,
+                     bucketName: this.bucketName,
+                     functionName: `${_.upperFirst(this.serviceName)}Function`};
 
-    this.fs.copyTpl(
-      this.templatePath('_event.json'),
-      this.destinationPath('event.json'),
-      this.defaultOptions
-    );
+    this._copyTemplates(["package.json" , "boot.properties", "build.boot", "build.yml"], overrides);
+  }
 
-    this.fs.copyTpl(
-      this.templatePath('_build.yml'),
-      this.destinationPath('build.yml'),
-      _.merge(this.defaultOptions, {functionName: `${_.upperFirst(this.serviceName)}Function`})
-    );
+  _lambda(){
+    this._copyTemplates(["index.js" , "context.json", "event.json"]);
+  }
 
-    this.fs.copyTpl(
-      this.templatePath('_boot.properties'),
-      this.destinationPath('boot.properties'),
-      this.defaultOptions
-    );
-
-    this.fs.copyTpl(
-      this.templatePath('_build.boot'),
-      this.destinationPath('build.boot'),
-      this.defaultOptions
-    );
-
+  _app() {
     this.fs.copyTpl(
       this.templatePath('src/app/_core.cljs'),
       this.destinationPath(`src/${this.serviceName}/core.cljs`),
@@ -103,7 +85,31 @@ module.exports = class extends Generator {
     );
   }
 
+
+  writing() {
+    this.defaultOptions = {
+      service: `${this.serviceName}`,
+      organization: `${this.organization}`,
+      author: `${this.author}`
+    };
+
+    this._automation();
+    this._lambda();
+    this._app();
+  }
+
   install(){
-    this.yarnInstall();
+    let deps = ["atob@2.0.3",
+                "btoa@1.1.2",
+                "dynamodb-marshaler@2.0.0",
+                "aws-sdk@2.6.4",
+                "js-yaml@3.6.1",
+                "fstream@1.0.10",
+                "jsonwebtoken@7.1.9",
+                "node-lambda@0.8.11",
+                "path@0.12.7",
+                "request@2.75.0",
+                "unzipper@0.7.2"];
+    this.yarnInstall(deps, {'exact': true});
   }
 };
